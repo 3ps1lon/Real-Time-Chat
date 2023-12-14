@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import io from 'socket.io-client'
 import { useLocation } from 'react-router-dom'
-import styles from '../styles/Chat.modules.css'
 
+import icon from '../images/emoji.svg'
+import EmojiPicker from 'emoji-picker-react'
+import styles from '../styles/Chat.module.css'
+import Messages from './Messages'
 
-const socket = io.connect('http://localhost:5000')
+const socket = io.connect('http://192.168.1.65:5000')
 
 const Chat = () => {
   const [state, setState] = useState([])
   const { search } = useLocation()
-  const [params, setParams] = useState(null)
+  const [params, setParams] = useState([])
   const [message, setMessage] = useState("")
+  const [isOpen, setOpen] = useState(false)
+
 
   useEffect(() => {
     const searchParams = Object.fromEntries(new URLSearchParams(search))
@@ -27,10 +32,23 @@ const Chat = () => {
   const leftRoom = () => {
 
   }
-  const handleChange = () => {
+  const handleChange = ({ target: { value } }) => setMessage(value)
+
+  const handleSubmit = (e) => {
+
+    e.preventDefault();
+    if (!message) return;
+    socket.emit("sendMessage", { message, params })
+
+    setMessage("")
 
   }
-console.log(params)
+
+  const onEmojiClick = ({ emoji }) => {
+    setMessage(`${message} ${emoji}`)
+  }
+
+
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
@@ -45,20 +63,33 @@ console.log(params)
         </button>
       </div>
       <div className={styles.messages}>
-        {state.map(({ message }) => <span>{message}</span>)}
+        <Messages messages={state} name={params.username} />
       </div>
 
-      <form className={styles.form}>
-        <div className={styles.group}>
-          <input className={styles.input}
-            name='message'
-            placeholder='What do you want to say??'
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.input}>
+          <input
             type="text"
+            name="message"
+            placeholder="What do you want to say?"
             value={message}
             onChange={handleChange}
-            autoComplete='off'
+            autoComplete="off"
             required
           />
+        </div>
+        <div className={styles.emoji}>
+          <img src={icon} alt="" onClick={() => setOpen(!isOpen)} />
+
+          {isOpen && (
+            <div className={styles.emojies}>
+              <EmojiPicker onEmojiClick={onEmojiClick} />
+            </div>
+          )}
+        </div>
+
+        <div className={styles.button}>
+          <input type="submit" onSubmit={handleSubmit} value="Send a message" />
         </div>
       </form>
     </div>
