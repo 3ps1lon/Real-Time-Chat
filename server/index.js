@@ -3,6 +3,7 @@ const http = require("http")
 const {Server} = require("socket.io")
 const cors = require("cors")
 const route = require("./route")
+const { addUser } = require("./users")
 const app = express()
 
 app.use(cors({origin: "*"}))
@@ -16,6 +17,28 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"]
     }
+})
+
+io.on('connection', (socket) => {
+
+    socket.on('join', ({username, room}) => {
+        socket.join(room)
+
+        const {user} = addUser({username, room})
+
+        socket.emit('message', {
+            data: {user: {name: 'Admin'}, message: `Hey ${user.username}`}
+        })
+        socket.broadcast.to(user.room).emit('message', {
+            data: {user: {name: 'Admin'}, message: `${user.username} has joined`}
+        })
+    })
+
+
+
+    io.on('disconnect', () => {
+        console.log('Disconnect')
+    })
 })
 
 server.listen(5000, () => {
