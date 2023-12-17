@@ -3,7 +3,7 @@ const http = require("http")
 const {Server} = require("socket.io")
 const cors = require("cors")
 const route = require("./route")
-const { addUser, findUser } = require("./users")
+const { addUser, findUser, getRoomUsers, removeUser } = require("./users")
 const app = express()
 
 app.use(cors({origin: "*"}))
@@ -25,18 +25,30 @@ io.on('connection', (socket) => {
         socket.join(room)
 
         const {user} = addUser({username, room})
-        console.log(user)
         socket.emit('message', {
             data: {user: {username: 'Admin'}, message: `Hey ${user.username}`}
         })
         socket.broadcast.to(user.room).emit('message', {
             data: {user: {username: 'Admin'}, message: `${user.username} has joined`}
         })
+        io.to(user.room).emit('joinRoom', {data: {users: getRoomUsers(user.room)}})
     })
+
     socket.on('sendMessage', ({message, params}) => {
         const user = findUser(params)
         if(user) {
             io.to(user.room).emit('message', {data: {user, message}})
+        }
+    })
+        
+
+    socket.on('leftRoom', ({params}) => {
+        const user = removeUser(params)
+        if(user) {
+            const { room, username } = user
+
+            io.to(room).emit('message', {data: {user: {username: 'Admin'}, message: `${username} has left`}})
+            io.to(room).emit('joinRoom', {data: {users: getRoomUsers(room)}})
         }
     })
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import io from 'socket.io-client'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import icon from '../images/emoji.svg'
 import EmojiPicker from 'emoji-picker-react'
@@ -15,9 +15,11 @@ const Chat = () => {
   const [params, setParams] = useState([])
   const [message, setMessage] = useState("")
   const [isOpen, setOpen] = useState(false)
-
+  const [users, setUsers] = useState(0)
+  const navigate = useNavigate()
 
   useEffect(() => {
+
     const searchParams = Object.fromEntries(new URLSearchParams(search))
     setParams(searchParams)
     socket.emit('join', searchParams)
@@ -28,8 +30,15 @@ const Chat = () => {
       setState((_state) => [..._state, data])
     })
   }, [])
+  useEffect(() => {
+    socket.on('joinRoom', ({ data: {users} }) => {
+    setUsers(users.length)
+    })
+  }, [])
 
   const leftRoom = () => {
+    socket.emit("leftRoom", {params})
+    navigate('/')
 
   }
   const handleChange = ({ target: { value } }) => setMessage(value)
@@ -56,7 +65,7 @@ const Chat = () => {
           {params.room}
         </div>
         <div className={styles.users}>
-          0 users in this room
+          {users} users in this room
         </div>
         <button className={styles.left} onClick={leftRoom}>
           Left the room
